@@ -67,12 +67,13 @@
 
     document.addEventListener("keydown", e => keys[e.code] = true);
     document.addEventListener("keyup", e => keys[e.code] = false);
-
+const bunnyImage = new Image();
+bunnyImage.src = "assets/bunny1.png";
     const bunny = {
       x: 100,
       y: 0,
-      width: 40,
-      height: 40,
+      width: 64,
+      height: 64,
       velocityX: 0,
       velocityY: 0,
       speed: 4,
@@ -116,9 +117,8 @@
     }
 
     function drawBunny() {
-      ctx.fillStyle = "#ffb6c1";
-      ctx.fillRect(bunny.x - cameraX, bunny.y, bunny.width, bunny.height);
-    }
+  ctx.drawImage(bunnyImage, bunny.x - cameraX, bunny.y, bunny.width, bunny.height);
+}
 
     function checkCollision() {
       bunny.onGround = false;
