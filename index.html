@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bunny Bounce Retro</title>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(to bottom, #ffe6f0, #cceeff);
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      background-color: #fff0f5;
+      border: 4px dashed #ff99cc;
+    }
+    #gameOverOverlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(255, 182, 193, 0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Courier New', monospace;
+      font-size: 32px;
+      color: #660033;
+      visibility: hidden;
+      z-index: 10;
+    }
+    #restartButton {
+      margin-top: 20px;
+      padding: 15px 40px;
+      font-size: 24px;
+      background: #ff69b4;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      color: white;
+      transition: background 0.3s ease;
+    }
+    #restartButton:hover {
+      background: #ff4c9a;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+  <div id="gameOverOverlay">
+    Game Over!<br>
+    <button id="restartButton">restart</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const gameOverOverlay = document.getElementById("gameOverOverlay");
+    const restartButton = document.getElementById("restartButton");
+
+    let keys = {};
+    let cameraX = 0;
+    let score = 0;
+    let gameOver = false;
+
+    document.addEventListener("keydown", e => keys[e.code] = true);
+    document.addEventListener("keyup", e => keys[e.code] = false);
+
+    const bunny = {
+      x: 100,
+      y: 0,
+      width: 40,
+      height: 40,
+      velocityX: 0,
+      velocityY: 0,
+      speed: 4,
+      jumpPower: -12,
+      gravity: 0.6,
+      onGround: false,
+    };
+
+    const platforms = [];
+
+    let lastPlatformX = 0;
+    let lastPlatformY = 330;
+
+    // Genereer een reeks platforms om het spel te starten
+    function generateInitialPlatforms(count = 6) {
+      platforms.length = 0;
+      lastPlatformX = 0;
+      lastPlatformY = 330;
+
+      for (let i = 0; i < count; i++) {
+        const width = 120 + Math.random() * 60; // 120 - 180 px
+        if (i > 0) {
+          lastPlatformX += 160 + Math.random() * 40; // 160 - 200 px afstand
+          lastPlatformY += (Math.random() - 0.5) * 40; // ±20 px hoogteverschil
+          lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
+        }
+        platforms.push({
+          x: lastPlatformX,
+          y: lastPlatformY,
+          width: width,
+          height: 10
+        });
+      }
+    }
+
+    function drawPlatforms() {
+      ctx.fillStyle = "#add8e6";
+      platforms.forEach(p => {
+        ctx.fillRect(p.x - cameraX, p.y, p.width, p.height);
+      });
+    }
+
+    function drawBunny() {
+      ctx.fillStyle = "#ffb6c1";
+      ctx.fillRect(bunny.x - cameraX, bunny.y, bunny.width, bunny.height);
+    }
+
+    function checkCollision() {
+      bunny.onGround = false;
+      platforms.forEach(p => {
+        if (
+          bunny.x < p.x + p.width &&
+          bunny.x + bunny.width > p.x &&
+          bunny.y + bunny.height <= p.y + 10 &&
+          bunny.y + bunny.height >= p.y &&
+          bunny.velocityY >= 0
+        ) {
+          bunny.velocityY = 0;
+          bunny.y = p.y - bunny.height;
+          bunny.onGround = true;
+        }
+      });
+    }
+
+    function generateNewPlatform() {
+      const width = 120 + Math.random() * 60;
+      lastPlatformX += 160 + Math.random() * 40;
+      lastPlatformY += (Math.random() - 0.5) * 40;
+      lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
+      platforms.push({
+        x: lastPlatformX,
+        y: lastPlatformY,
+        width: width,
+        height: 10
+      });
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      if (keys["ArrowRight"]) {
+        bunny.velocityX = bunny.speed;
+      } else if (keys["ArrowLeft"]) {
+        bunny.velocityX = -bunny.speed;
+      } else {
+        bunny.velocityX *= 0.8;
+        if (Math.abs(bunny.velocityX) < 0.1) bunny.velocityX = 0;
+      }
+      bunny.x += bunny.velocityX;
+
+      bunny.velocityY += bunny.gravity;
+      bunny.y += bunny.velocityY;
+
+      if (keys["Space"] && bunny.onGround) {
+        bunny.velocityY = bunny.jumpPower;
+        bunny.onGround = false;
+      }
+
+      checkCollision();
+
+      const cameraFollowX = canvas.width * 0.4;
+      if (bunny.x - cameraX > cameraFollowX) {
+        cameraX = bunny.x - cameraFollowX;
+      }
+
+      for (let i = platforms.length - 1; i >= 0; i--) {
+        const p = platforms[i];
+        if (p.x + p.width < cameraX - 100) {
+          platforms.splice(i, 1);
+          generateNewPlatform();
+        }
+      }
+
+      if (bunny.y > canvas.height) {
+        showGameOver();
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPlatforms();
+      drawBunny();
+      ctx.fillStyle = "#333";
+      ctx.font = "16px monospace";
+      ctx.fillText("Score: " + score, 10, 20);
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function showGameOver() {
+      gameOver = true;
+      gameOverOverlay.style.visibility = "visible";
+    }
+
+    function resetGame() {
+      gameOver = false;
+      score = 0;
+      cameraX = 0;
+
+      generateInitialPlatforms();
+
+      // Zet bunny op eerste platform
+      const firstPlatform = platforms[0];
+      bunny.x = firstPlatform.x + 10; // net iets van rand af
+      bunny.y = firstPlatform.y - bunny.height;
+      bunny.velocityX = 0;
+      bunny.velocityY = 0;
+      bunny.onGround = true;
+
+      gameOverOverlay.style.visibility = "hidden";
+    }
+
+    restartButton.addEventListener("click", resetGame);
+
+    // Start het spel voor het eerst:
+    resetGame();
+    gameLoop();
+
+  </script>
+</body>
+</html>
