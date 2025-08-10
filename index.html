@@ -71,7 +71,7 @@
     document.addEventListener("keyup", e => keys[e.code] = false);
 
     const bunnyImage = new Image();
-    bunnyImage.src = "assets/bunny1.png"; // Zorg dat het pad klopt!
+    bunnyImage.src = "assets/bunny1.png"; 
 
     const bunny = {
       x: 100,
@@ -145,7 +145,7 @@
               combo += 1;
               bunny.hasJumped = false;
             } else {
-              combo = 0; // geen sprong → geen combo
+              combo = 0; 
             }
             lastPlatformLanded = p;
           }
@@ -157,7 +157,7 @@
       });
 
       if (!bunny.onGround) {
-        // lucht in = combo niet resetten direct
+        
       }
     }
 
