@@ -67,8 +67,10 @@
 
     document.addEventListener("keydown", e => keys[e.code] = true);
     document.addEventListener("keyup", e => keys[e.code] = false);
-const bunnyImage = new Image();
-bunnyImage.src = "assets/bunny1.png";
+
+    const bunnyImage = new Image();
+    bunnyImage.src = "assets/bunny1.png";
+
     const bunny = {
       x: 100,
       y: 0,
@@ -83,21 +85,19 @@ bunnyImage.src = "assets/bunny1.png";
     };
 
     const platforms = [];
-
     let lastPlatformX = 0;
     let lastPlatformY = 330;
 
-    // Genereer een reeks platforms om het spel te starten
     function generateInitialPlatforms(count = 6) {
       platforms.length = 0;
       lastPlatformX = 0;
       lastPlatformY = 330;
 
       for (let i = 0; i < count; i++) {
-        const width = 120 + Math.random() * 60; // 120 - 180 px
+        const width = 120 + Math.random() * 60;
         if (i > 0) {
-          lastPlatformX += 160 + Math.random() * 40; // 160 - 200 px afstand
-          lastPlatformY += (Math.random() - 0.5) * 40; // ±20 px hoogteverschil
+          lastPlatformX += 160 + Math.random() * 40;
+          lastPlatformY += (Math.random() - 0.5) * 40;
           lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
         }
         platforms.push({
@@ -117,19 +117,25 @@ bunnyImage.src = "assets/bunny1.png";
     }
 
     function drawBunny() {
-  ctx.drawImage(bunnyImage, bunny.x - cameraX, bunny.y, bunny.width, bunny.height);
-}
+      ctx.drawImage(bunnyImage, bunny.x - cameraX, bunny.y, bunny.width, bunny.height);
+    }
 
-    function checkCollision() {
+    function checkCollision(prevY) {
       bunny.onGround = false;
+
       platforms.forEach(p => {
-        if (
+        const bunnyBottomNow = bunny.y + bunny.height;
+        const bunnyBottomPrev = prevY + bunny.height;
+
+        const horizontalOverlap =
           bunny.x < p.x + p.width &&
-          bunny.x + bunny.width > p.x &&
-          bunny.y + bunny.height <= p.y + 10 &&
-          bunny.y + bunny.height >= p.y &&
-          bunny.velocityY >= 0
-        ) {
+          bunny.x + bunny.width > p.x;
+
+        const verticalPassThrough =
+          bunnyBottomPrev <= p.y &&
+          bunnyBottomNow >= p.y;
+
+        if (horizontalOverlap && verticalPassThrough && bunny.velocityY >= 0) {
           bunny.velocityY = 0;
           bunny.y = p.y - bunny.height;
           bunny.onGround = true;
@@ -153,6 +159,8 @@ bunnyImage.src = "assets/bunny1.png";
     function update() {
       if (gameOver) return;
 
+      const prevY = bunny.y;
+
       if (keys["ArrowRight"]) {
         bunny.velocityX = bunny.speed;
       } else if (keys["ArrowLeft"]) {
@@ -171,7 +179,7 @@ bunnyImage.src = "assets/bunny1.png";
         bunny.onGround = false;
       }
 
-      checkCollision();
+      checkCollision(prevY);
 
       const cameraFollowX = canvas.width * 0.4;
       if (bunny.x - cameraX > cameraFollowX) {
@@ -218,9 +226,8 @@ bunnyImage.src = "assets/bunny1.png";
 
       generateInitialPlatforms();
 
-      // Zet bunny op eerste platform
       const firstPlatform = platforms[0];
-      bunny.x = firstPlatform.x + 10; // net iets van rand af
+      bunny.x = firstPlatform.x + 10;
       bunny.y = firstPlatform.y - bunny.height;
       bunny.velocityX = 0;
       bunny.velocityY = 0;
@@ -231,10 +238,8 @@ bunnyImage.src = "assets/bunny1.png";
 
     restartButton.addEventListener("click", resetGame);
 
-    // Start het spel voor het eerst:
     resetGame();
     gameLoop();
-
   </script>
 </body>
 </html>
