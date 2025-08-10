@@ -24,7 +24,6 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      font-family: 'Courier New', monospace;
       font-size: 32px;
       color: #660033;
       visibility: hidden;
@@ -51,7 +50,7 @@
 
   <div id="gameOverOverlay">
     Game Over!<br>
-    <button id="restartButton">restart</button>
+    <button id="restartButton">Restart</button>
   </div>
 
   <script>
@@ -63,13 +62,17 @@
     let keys = {};
     let cameraX = 0;
     let score = 0;
+    let highScore = parseInt(localStorage.getItem("bunnyHighScore")) || 0;
+    let combo = 0;
+    let lastPlatformLanded = null;
     let gameOver = false;
 
     document.addEventListener("keydown", e => keys[e.code] = true);
     document.addEventListener("keyup", e => keys[e.code] = false);
 
     const bunnyImage = new Image();
-    bunnyImage.src = "assets/bunny1.png";
+    bunnyImage.src = "assets/bunny1.png"; 
+    //bunnyImage.src = "assets/bunny2.png";
 
     const bunny = {
       x: 100,
@@ -82,6 +85,7 @@
       jumpPower: -12,
       gravity: 0.6,
       onGround: false,
+      hasJumped: false
     };
 
     const platforms = [];
@@ -136,11 +140,26 @@
           bunnyBottomNow >= p.y;
 
         if (horizontalOverlap && verticalPassThrough && bunny.velocityY >= 0) {
+          if (lastPlatformLanded !== p) {
+            if (bunny.hasJumped) {
+              score += 1 + combo;
+              combo += 1;
+              bunny.hasJumped = false;
+            } else {
+              combo = 0; 
+            }
+            lastPlatformLanded = p;
+          }
+
           bunny.velocityY = 0;
           bunny.y = p.y - bunny.height;
           bunny.onGround = true;
         }
       });
+
+      if (!bunny.onGround) {
+        
+      }
     }
 
     function generateNewPlatform() {
@@ -177,6 +196,7 @@
       if (keys["Space"] && bunny.onGround) {
         bunny.velocityY = bunny.jumpPower;
         bunny.onGround = false;
+        bunny.hasJumped = true;
       }
 
       checkCollision(prevY);
@@ -203,9 +223,12 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawPlatforms();
       drawBunny();
+
       ctx.fillStyle = "#333";
       ctx.font = "16px monospace";
       ctx.fillText("Score: " + score, 10, 20);
+      ctx.fillText("High Score: " + highScore, 10, 40);
+      ctx.fillText("Combo: " + combo, 10, 60);
     }
 
     function gameLoop() {
@@ -216,12 +239,18 @@
 
     function showGameOver() {
       gameOver = true;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("bunnyHighScore", highScore);
+      }
       gameOverOverlay.style.visibility = "visible";
     }
 
     function resetGame() {
       gameOver = false;
       score = 0;
+      combo = 0;
+      lastPlatformLanded = null;
       cameraX = 0;
 
       generateInitialPlatforms();
@@ -232,6 +261,7 @@
       bunny.velocityX = 0;
       bunny.velocityY = 0;
       bunny.onGround = true;
+      bunny.hasJumped = false;
 
       gameOverOverlay.style.visibility = "hidden";
     }
