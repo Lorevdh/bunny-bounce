@@ -50,12 +50,12 @@
 </head>
 <body>
 
-  <canvas id="gameCanvas" width="800" height="400"></canvas>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
 
-  <div id="gameOverOverlay">
-    Game Over!<br>
-    <button id="restartButton">Restart</button>
-  </div>
+<div id="gameOverOverlay">
+  Game Over!<br>
+  <button id="restartButton">Restart</button>
+</div>
 
 <script>
   const canvas = document.getElementById("gameCanvas");
@@ -77,7 +77,6 @@
   const bunnyImage = new Image();
   bunnyImage.src = "assets/bunny1.png";
 
-
   const bgMusic = new Audio("assets/sounds/background-music.mp3");
   bgMusic.loop = true;
   bgMusic.volume = 0.3;
@@ -96,8 +95,21 @@
   };
 
   const platforms = [];
+  const cacti = [];
+  const cactusWidth = 20;
+  const cactusHeight = 40;
+
   let lastPlatformX = 0;
   let lastPlatformY = 330;
+
+  let maxLives = 5;
+  let currentLives = maxLives;
+
+  const fullHeartImage = new Image();
+  fullHeartImage.src = "assets/heart_full.png";
+
+  const emptyHeartImage = new Image();
+  emptyHeartImage.src = "assets/heart_empty.png";
 
   const clouds = [];
 
@@ -108,7 +120,7 @@
   const padding = 12;
 
   const musicIconBox = {
-    x: canvas.width - padding - iconSize * 2 - 12, 
+    x: canvas.width - padding - iconSize * 2 - 12,
     y: padding,
     width: iconSize,
     height: iconSize
@@ -121,6 +133,19 @@
     height: iconSize
   };
 
+  function drawRoundedRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height);
+    ctx.lineTo(x, y + height);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
   function drawMusicIcon(ctx, x, y, size, enabled) {
     ctx.save();
     ctx.translate(x, y);
@@ -129,20 +154,17 @@
     ctx.strokeStyle = enabled ? "#ff3399" : "#ccc";
     ctx.fillStyle = enabled ? "#ff3399" : "#ccc";
 
-    // Note stem
     ctx.beginPath();
     ctx.moveTo(10, 35);
     ctx.lineTo(10, 10);
     ctx.stroke();
 
-    // Note flag
     ctx.beginPath();
     ctx.moveTo(10, 10);
     ctx.bezierCurveTo(10, 0, 30, 0, 30, 10);
     ctx.bezierCurveTo(30, 18, 15, 18, 10, 22);
     ctx.fill();
- 
-    // Note base (circle)
+
     ctx.beginPath();
     ctx.arc(10, 35, 6, 0, Math.PI * 2);
     ctx.fill();
@@ -150,7 +172,6 @@
     ctx.restore();
   }
 
- 
   function drawSpeakerIcon(ctx, x, y, size, enabled) {
     ctx.save();
     ctx.translate(x, y);
@@ -159,7 +180,6 @@
     ctx.strokeStyle = enabled ? "#ff3399" : "#ccc";
     ctx.fillStyle = enabled ? "#ff3399" : "#ccc";
 
-    
     ctx.beginPath();
     ctx.moveTo(8, 15);
     ctx.lineTo(18, 15);
@@ -171,7 +191,6 @@
     ctx.fill();
     ctx.stroke();
 
-    
     if (enabled) {
       ctx.beginPath();
       ctx.arc(30, 20, 6, -Math.PI / 4, Math.PI / 4);
@@ -181,7 +200,6 @@
       ctx.arc(34, 20, 10, -Math.PI / 4, Math.PI / 4);
       ctx.stroke();
     } else {
-      // muted
       ctx.strokeStyle = "red";
       ctx.lineWidth = 4;
       ctx.beginPath();
@@ -194,19 +212,6 @@
 
     ctx.restore();
   }
-  function drawRoundedRect(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height);
-  ctx.lineTo(x, y + height);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-  ctx.fill();
-}
-
 
   function generateClouds(count = 10) {
     clouds.length = 0;
@@ -267,9 +272,6 @@
       drawCloudShape(c.x - cameraX * 0.3, c.y, c.scale, c.type, c.opacity);
     });
   }
-const cacti = []; // Obstakels
-const cactusWidth = 20;
-const cactusHeight = 40;
 
   function generateInitialPlatforms(count = 6) {
     platforms.length = 0;
@@ -283,15 +285,12 @@ const cactusHeight = 40;
         lastPlatformY += (Math.random() - 0.5) * 40;
         lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
       }
-platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
+      platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
 
-// 30% chance for cactus and not on first 2 platforms
-if (platforms.length > 2 && Math.random() < 0.3) {
-  const cactusX = lastPlatformX + 20 + Math.random() * (width - 40);
-  cacti.push({ x: cactusX, y: lastPlatformY - cactusHeight });
-}
-
-
+      if (platforms.length > 2 && Math.random() < 0.3) {
+        const cactusX = lastPlatformX + 20 + Math.random() * (width - 40);
+        cacti.push({ x: cactusX, y: lastPlatformY - cactusHeight });
+      }
     }
   }
 
@@ -301,33 +300,30 @@ if (platforms.length > 2 && Math.random() < 0.3) {
       ctx.fillRect(p.x - cameraX, p.y, p.width, p.height);
     });
   }
-function drawCacti() {
-  cacti.forEach(c => {
-    const drawX = c.x - cameraX;
-    const drawY = c.y;
 
-    // Cactus body
-    ctx.fillStyle = "#228B22";
-    drawRoundedRect(ctx, drawX, drawY, cactusWidth, cactusHeight, 8);
+  function drawCacti() {
+    cacti.forEach(c => {
+      const drawX = c.x - cameraX;
+      const drawY = c.y;
 
+      ctx.fillStyle = "#228B22";
+      drawRoundedRect(ctx, drawX, drawY, cactusWidth, cactusHeight, 8);
 
-    // Cactus arms links
-    ctx.beginPath();
-    ctx.moveTo(drawX + 5, drawY + 10);
-    ctx.lineTo(drawX - 8, drawY + 5);
-    ctx.lineTo(drawX - 6, drawY + 15);
-    ctx.lineTo(drawX + 5, drawY + 20);
-    ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(drawX + 5, drawY + 10);
+      ctx.lineTo(drawX - 8, drawY + 5);
+      ctx.lineTo(drawX - 6, drawY + 15);
+      ctx.lineTo(drawX + 5, drawY + 20);
+      ctx.fill();
 
-    // Cactus arms rechts
-    ctx.beginPath();
-    ctx.moveTo(drawX + 15, drawY + 15);
-    ctx.lineTo(drawX + 28, drawY + 10);
-    ctx.lineTo(drawX + 26, drawY + 20);
-    ctx.lineTo(drawX + 15, drawY + 25);
-    ctx.fill();
-  });
-}
+      ctx.beginPath();
+      ctx.moveTo(drawX + 15, drawY + 15);
+      ctx.lineTo(drawX + 28, drawY + 10);
+      ctx.lineTo(drawX + 26, drawY + 20);
+      ctx.lineTo(drawX + 15, drawY + 25);
+      ctx.fill();
+    });
+  }
 
   function drawBunny() {
     ctx.drawImage(bunnyImage, bunny.x - cameraX, bunny.y, bunny.width, bunny.height);
@@ -335,11 +331,9 @@ function drawCacti() {
 
   function checkCollision(prevY) {
     bunny.onGround = false;
-
     platforms.forEach(p => {
       const bunnyBottomNow = bunny.y + bunny.height;
       const bunnyBottomPrev = prevY + bunny.height;
-
       const horizontalOverlap = bunny.x < p.x + p.width && bunny.x + bunny.width > p.x;
       const verticalPassThrough = bunnyBottomPrev <= p.y && bunnyBottomNow >= p.y;
 
@@ -354,7 +348,6 @@ function drawCacti() {
           }
           lastPlatformLanded = p;
         }
-
         bunny.velocityY = 0;
         bunny.y = p.y - bunny.height;
         bunny.onGround = true;
@@ -366,20 +359,18 @@ function drawCacti() {
     const width = 120 + Math.random() * 60;
     lastPlatformX += 160 + Math.random() * 40;
     lastPlatformY += (Math.random() - 0.5) * 40;
-        lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
+    lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
     platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
-    // 30% kans op cactus
-if (Math.random() < 0.3) {
-  const cactusX = lastPlatformX + 20 + Math.random() * (width - 40);
-  cacti.push({ x: cactusX, y: lastPlatformY - cactusHeight });
-}
 
+    if (Math.random() < 0.3) {
+      const cactusX = lastPlatformX + 20 + Math.random() * (width - 40);
+      cacti.push({ x: cactusX, y: lastPlatformY - cactusHeight });
+    }
   }
 
   function updateBunny() {
     if (gameOver) return;
 
-   
     if (keys["ArrowRight"] || keys["KeyD"]) {
       bunny.velocityX = bunny.speed;
     } else if (keys["ArrowLeft"] || keys["KeyA"]) {
@@ -388,59 +379,73 @@ if (Math.random() < 0.3) {
       bunny.velocityX = 0;
     }
 
-    
-   if ((keys["ArrowUp"] || keys["KeyW"] || keys["Space"]) && bunny.onGround) {
-  bunny.velocityY = bunny.jumpPower;
-  bunny.onGround = false;
-  bunny.hasJumped = true;
-  if (effectsOn) {
-    jumpSound.currentTime = 0;
-    jumpSound.play();
-  }
-}
+    if ((keys["ArrowUp"] || keys["KeyW"] || keys["Space"]) && bunny.onGround) {
+      bunny.velocityY = bunny.jumpPower;
+      bunny.onGround = false;
+      bunny.hasJumped = true;
+      if (effectsOn) {
+        jumpSound.currentTime = 0;
+        jumpSound.play();
+      }
+    }
 
-
-    
     bunny.velocityY += bunny.gravity;
 
-    
     const prevY = bunny.y;
     bunny.x += bunny.velocityX;
     bunny.y += bunny.velocityY;
 
-   
     if (bunny.x < 0) bunny.x = 0;
-    if (bunny.x + bunny.width > cameraX + canvas.width) bunny.x = cameraX + canvas.width - bunny.width;
-
+    if (bunny.x + bunny.width > cameraX + canvas.width) {
+      bunny.x = cameraX + canvas.width - bunny.width;
+    }
 
     checkCollision(prevY);
-// Check botsing met cactus
-cacti.forEach(c => {
-  if (
-    bunny.x + bunny.width > c.x &&
-    bunny.x < c.x + cactusWidth &&
-    bunny.y + bunny.height > c.y &&
-    bunny.y < c.y + cactusHeight
-  ) {
-    endGame();
-  }
-});
 
+    cacti.forEach(c => {
+      if (
+        bunny.x + bunny.width > c.x &&
+        bunny.x < c.x + cactusWidth &&
+        bunny.y + bunny.height > c.y &&
+        bunny.y < c.y + cactusHeight
+      ) {
+        currentLives--;
+        if (currentLives <= 0) {
+          endGame();
+        }
+        c.x = -9999;
+      }
+    });
 
     if (bunny.y > canvas.height + 100) {
       endGame();
     }
 
-
     if (bunny.x - cameraX > canvas.width * 0.6) {
       cameraX = bunny.x - canvas.width * 0.6;
     }
-
 
     while (lastPlatformX < cameraX + canvas.width + 200) {
       generateNewPlatform();
     }
   }
+
+function drawHearts() {
+  const heartSize = 32;
+  const spacing = 10;
+  const totalWidth = maxLives * heartSize + (maxLives - 1) * spacing;
+  const startX = canvas.width / 2 - totalWidth / 2; // gecentreerd
+
+  const y = 10; // dichter bij de bovenkant
+
+  for (let i = 0; i < maxLives; i++) {
+    const x = startX + i * (heartSize + spacing);
+    const image = i < currentLives ? fullHeartImage : emptyHeartImage;
+    ctx.drawImage(image, x, y, heartSize, heartSize);
+  }
+}
+
+
 
   function drawHUD() {
     ctx.fillStyle = "#990033";
@@ -449,11 +454,9 @@ cacti.forEach(c => {
     ctx.fillText(`Score: ${score}`, 10, 25);
     ctx.fillText(`High Score: ${highScore}`, 10, 50);
     ctx.fillText(`Combo: ${combo}`, 10, 75);
-
-
     drawMusicIcon(ctx, musicIconBox.x, musicIconBox.y, iconSize, musicOn);
-
     drawSpeakerIcon(ctx, effectsIconBox.x, effectsIconBox.y, iconSize, effectsOn);
+    drawHearts();
   }
 
   function clearScreen() {
@@ -462,19 +465,12 @@ cacti.forEach(c => {
 
   function gameLoop() {
     clearScreen();
-
     updateClouds();
     drawClouds();
-
     updateBunny();
-
     drawPlatforms();
-    drawPlatforms();
-drawCacti();
-drawBunny();
-
+    drawCacti();
     drawBunny();
-
     drawHUD();
 
     if (!gameOver) {
@@ -511,6 +507,7 @@ drawBunny();
     bunny.velocityY = 0;
     cameraX = 0;
     cacti.length = 0;
+    currentLives = maxLives;
 
     generateInitialPlatforms();
     generateClouds();
@@ -518,7 +515,6 @@ drawBunny();
     if (musicOn) bgMusic.play();
     gameLoop();
   }
-
 
   canvas.addEventListener("click", (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -534,7 +530,6 @@ drawBunny();
       else bgMusic.pause();
     }
 
- 
     if (
       clickX >= effectsIconBox.x && clickX <= effectsIconBox.x + effectsIconBox.width &&
       clickY >= effectsIconBox.y && clickY <= effectsIconBox.y + effectsIconBox.height
@@ -542,7 +537,6 @@ drawBunny();
       effectsOn = !effectsOn;
     }
   });
-
 
   bunnyImage.onload = () => {
     generateInitialPlatforms();
@@ -554,3 +548,4 @@ drawBunny();
 
 </body>
 </html>
+ 
