@@ -47,7 +47,6 @@
 </head>
 <body>
   <canvas id="gameCanvas" width="800" height="400"></canvas>
-
   <div id="gameOverOverlay">
     Game Over!<br>
     <button id="restartButton">Restart</button>
@@ -71,16 +70,11 @@
     document.addEventListener("keyup", e => keys[e.code] = false);
 
     const bunnyImage = new Image();
-    bunnyImage.src = "assets/bunny1.png"; 
-    //bunnyImage.src = "assets/bunny2.png";
+    bunnyImage.src = "assets/bunny1.png";
 
     const bunny = {
-      x: 100,
-      y: 0,
-      width: 64,
-      height: 64,
-      velocityX: 0,
-      velocityY: 0,
+      x: 100, y: 0, width: 64, height: 64,
+      velocityX: 0, velocityY: 0,
       speed: 4,
       jumpPower: -12,
       gravity: 0.6,
@@ -91,6 +85,72 @@
     const platforms = [];
     let lastPlatformX = 0;
     let lastPlatformY = 330;
+
+    const clouds = [];
+
+    function generateClouds(count = 10) {
+      clouds.length = 0;
+      for (let i = 0; i < count; i++) {
+        clouds.push({
+          x: Math.random() * canvas.width * 2,
+          y: Math.random() * 180,
+          scale: 0.4 + Math.random() * 1.2,
+          speed: 0.02 + Math.random() * 0.06,
+          type: Math.floor(Math.random() * 3),
+          opacity: 0.6 + Math.random() * 0.4
+        });
+      }
+    }
+
+    function drawCloudShape(x, y, scale = 1, type = 0, opacity = 0.8) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = `rgba(255,255,255,${opacity})`;
+      ctx.beginPath();
+
+      if (type === 0) {
+        ctx.arc(0, 0, 30, 0, Math.PI * 2);
+        ctx.arc(30, -10, 40, 0, Math.PI * 2);
+        ctx.arc(70, 0, 30, 0, Math.PI * 2);
+      } else if (type === 1) {
+        ctx.arc(0, 10, 25, 0, Math.PI * 2);
+        ctx.arc(25, 0, 35, 0, Math.PI * 2);
+        ctx.arc(60, 10, 25, 0, Math.PI * 2);
+      } else {
+        ctx.arc(0, 0, 20, 0, Math.PI * 2);
+        ctx.arc(20, -5, 30, 0, Math.PI * 2);
+        ctx.arc(50, 0, 20, 0, Math.PI * 2);
+      }
+
+      ctx.fill();
+      ctx.restore();
+    }
+
+
+
+function updateClouds() {
+  clouds.forEach(c => {
+    const baseSpeed = 0.01 + (score / 1000);
+    c.x -= c.speed * baseSpeed;
+
+    if (c.x + 100 * c.scale < cameraX * 0.3 - 300) {
+      c.x = cameraX * 0.3 + canvas.width + Math.random() * 600;
+      c.y = Math.random() * 180;
+      c.scale = 0.4 + Math.random() * 1.2;
+      c.type = Math.floor(Math.random() * 3);
+      c.opacity = 0.6 + Math.random() * 0.4;
+    }
+  });
+}
+
+
+
+    function drawClouds() {
+      clouds.forEach(c => {
+        drawCloudShape(c.x - cameraX * 0.3, c.y, c.scale, c.type, c.opacity);
+      });
+    }
 
     function generateInitialPlatforms(count = 6) {
       platforms.length = 0;
@@ -104,12 +164,7 @@
           lastPlatformY += (Math.random() - 0.5) * 40;
           lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
         }
-        platforms.push({
-          x: lastPlatformX,
-          y: lastPlatformY,
-          width: width,
-          height: 10
-        });
+        platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
       }
     }
 
@@ -131,13 +186,8 @@
         const bunnyBottomNow = bunny.y + bunny.height;
         const bunnyBottomPrev = prevY + bunny.height;
 
-        const horizontalOverlap =
-          bunny.x < p.x + p.width &&
-          bunny.x + bunny.width > p.x;
-
-        const verticalPassThrough =
-          bunnyBottomPrev <= p.y &&
-          bunnyBottomNow >= p.y;
+        const horizontalOverlap = bunny.x < p.x + p.width && bunny.x + bunny.width > p.x;
+        const verticalPassThrough = bunnyBottomPrev <= p.y && bunnyBottomNow >= p.y;
 
         if (horizontalOverlap && verticalPassThrough && bunny.velocityY >= 0) {
           if (lastPlatformLanded !== p) {
@@ -146,7 +196,7 @@
               combo += 1;
               bunny.hasJumped = false;
             } else {
-              combo = 0; 
+              combo = 0;
             }
             lastPlatformLanded = p;
           }
@@ -156,10 +206,6 @@
           bunny.onGround = true;
         }
       });
-
-      if (!bunny.onGround) {
-        
-      }
     }
 
     function generateNewPlatform() {
@@ -167,12 +213,7 @@
       lastPlatformX += 160 + Math.random() * 40;
       lastPlatformY += (Math.random() - 0.5) * 40;
       lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
-      platforms.push({
-        x: lastPlatformX,
-        y: lastPlatformY,
-        width: width,
-        height: 10
-      });
+      platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
     }
 
     function update() {
@@ -188,8 +229,8 @@
         bunny.velocityX *= 0.8;
         if (Math.abs(bunny.velocityX) < 0.1) bunny.velocityX = 0;
       }
-      bunny.x += bunny.velocityX;
 
+      bunny.x += bunny.velocityX;
       bunny.velocityY += bunny.gravity;
       bunny.y += bunny.velocityY;
 
@@ -207,12 +248,13 @@
       }
 
       for (let i = platforms.length - 1; i >= 0; i--) {
-        const p = platforms[i];
-        if (p.x + p.width < cameraX - 100) {
+        if (platforms[i].x + platforms[i].width < cameraX - 100) {
           platforms.splice(i, 1);
           generateNewPlatform();
         }
       }
+
+      updateClouds();
 
       if (bunny.y > canvas.height) {
         showGameOver();
@@ -221,6 +263,7 @@
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawClouds();
       drawPlatforms();
       drawBunny();
 
@@ -254,6 +297,7 @@
       cameraX = 0;
 
       generateInitialPlatforms();
+      generateClouds();
 
       const firstPlatform = platforms[0];
       bunny.x = firstPlatform.x + 10;
