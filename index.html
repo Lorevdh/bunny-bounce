@@ -254,6 +254,9 @@
       drawCloudShape(c.x - cameraX * 0.3, c.y, c.scale, c.type, c.opacity);
     });
   }
+const cacti = []; // Obstakels
+const cactusWidth = 20;
+const cactusHeight = 40;
 
   function generateInitialPlatforms(count = 6) {
     platforms.length = 0;
@@ -268,6 +271,12 @@
         lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
       }
       platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
+      // 30% kans op cactus
+if (Math.random() < 0.3) {
+  const cactusX = lastPlatformX + 20 + Math.random() * (width - 40);
+  cacti.push({ x: cactusX, y: lastPlatformY - cactusHeight });
+}
+
     }
   }
 
@@ -277,6 +286,32 @@
       ctx.fillRect(p.x - cameraX, p.y, p.width, p.height);
     });
   }
+function drawCacti() {
+  cacti.forEach(c => {
+    const drawX = c.x - cameraX;
+    const drawY = c.y;
+
+    // Cactus body
+    ctx.fillStyle = "#228B22";
+    ctx.fillRect(drawX, drawY, cactusWidth, cactusHeight);
+
+    // Cactus arms links
+    ctx.beginPath();
+    ctx.moveTo(drawX + 5, drawY + 10);
+    ctx.lineTo(drawX - 8, drawY + 5);
+    ctx.lineTo(drawX - 6, drawY + 15);
+    ctx.lineTo(drawX + 5, drawY + 20);
+    ctx.fill();
+
+    // Cactus arms rechts
+    ctx.beginPath();
+    ctx.moveTo(drawX + 15, drawY + 15);
+    ctx.lineTo(drawX + 28, drawY + 10);
+    ctx.lineTo(drawX + 26, drawY + 20);
+    ctx.lineTo(drawX + 15, drawY + 25);
+    ctx.fill();
+  });
+}
 
   function drawBunny() {
     ctx.drawImage(bunnyImage, bunny.x - cameraX, bunny.y, bunny.width, bunny.height);
@@ -317,6 +352,12 @@
     lastPlatformY += (Math.random() - 0.5) * 40;
         lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
     platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
+    // 30% kans op cactus
+if (Math.random() < 0.3) {
+  const cactusX = lastPlatformX + 20 + Math.random() * (width - 40);
+  cacti.push({ x: cactusX, y: lastPlatformY - cactusHeight });
+}
+
   }
 
   function updateBunny() {
@@ -357,6 +398,17 @@
 
 
     checkCollision(prevY);
+// Check botsing met cactus
+cacti.forEach(c => {
+  if (
+    bunny.x + bunny.width > c.x &&
+    bunny.x < c.x + cactusWidth &&
+    bunny.y + bunny.height > c.y &&
+    bunny.y < c.y + cactusHeight
+  ) {
+    endGame();
+  }
+});
 
 
     if (bunny.y > canvas.height + 100) {
@@ -401,6 +453,10 @@
     updateBunny();
 
     drawPlatforms();
+    drawPlatforms();
+drawCacti();
+drawBunny();
+
     drawBunny();
 
     drawHUD();
@@ -438,6 +494,8 @@
     bunny.velocityX = 0;
     bunny.velocityY = 0;
     cameraX = 0;
+    cacti.length = 0;
+
     generateInitialPlatforms();
     generateClouds();
     bgMusic.currentTime = 0;
