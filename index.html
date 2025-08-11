@@ -194,6 +194,19 @@
 
     ctx.restore();
   }
+  function drawRoundedRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height);
+  ctx.lineTo(x, y + height);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
 
   function generateClouds(count = 10) {
     clouds.length = 0;
@@ -270,12 +283,14 @@ const cactusHeight = 40;
         lastPlatformY += (Math.random() - 0.5) * 40;
         lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
       }
-      platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
-      // 30% kans op cactus
-if (Math.random() < 0.3) {
+platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
+
+// 30% chance for cactus and not on first 2 platforms
+if (platforms.length > 2 && Math.random() < 0.3) {
   const cactusX = lastPlatformX + 20 + Math.random() * (width - 40);
   cacti.push({ x: cactusX, y: lastPlatformY - cactusHeight });
 }
+
 
     }
   }
@@ -293,7 +308,8 @@ function drawCacti() {
 
     // Cactus body
     ctx.fillStyle = "#228B22";
-    ctx.fillRect(drawX, drawY, cactusWidth, cactusHeight);
+    drawRoundedRect(ctx, drawX, drawY, cactusWidth, cactusHeight, 8);
+
 
     // Cactus arms links
     ctx.beginPath();
