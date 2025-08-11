@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title>Bunny Bounce Retro</title>
   <style>
     body {
@@ -14,6 +15,8 @@
       margin: auto;
       background-color: #fff0f5;
       border: 4px dashed #ff99cc;
+      cursor: default;
+      user-select: none;
     }
     #gameOverOverlay {
       position: fixed;
@@ -46,274 +49,434 @@
   </style>
 </head>
 <body>
+
   <canvas id="gameCanvas" width="800" height="400"></canvas>
+
   <div id="gameOverOverlay">
     Game Over!<br>
     <button id="restartButton">Restart</button>
   </div>
 
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const gameOverOverlay = document.getElementById("gameOverOverlay");
-    const restartButton = document.getElementById("restartButton");
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const gameOverOverlay = document.getElementById("gameOverOverlay");
+  const restartButton = document.getElementById("restartButton");
 
-    let keys = {};
-    let cameraX = 0;
-    let score = 0;
-    let highScore = parseInt(localStorage.getItem("bunnyHighScore")) || 0;
-    let combo = 0;
-    let lastPlatformLanded = null;
-    let gameOver = false;
+  let keys = {};
+  let cameraX = 0;
+  let score = 0;
+  let highScore = parseInt(localStorage.getItem("bunnyHighScore")) || 0;
+  let combo = 0;
+  let lastPlatformLanded = null;
+  let gameOver = false;
 
-    document.addEventListener("keydown", e => keys[e.code] = true);
-    document.addEventListener("keyup", e => keys[e.code] = false);
+  document.addEventListener("keydown", e => keys[e.code] = true);
+  document.addEventListener("keyup", e => keys[e.code] = false);
 
-    const bunnyImage = new Image();
-    bunnyImage.src = "assets/bunny1.png";
+  const bunnyImage = new Image();
+  bunnyImage.src = "assets/bunny1.png";
 
-    const bunny = {
-      x: 100, y: 0, width: 64, height: 64,
-      velocityX: 0, velocityY: 0,
-      speed: 4,
-      jumpPower: -12,
-      gravity: 0.6,
-      onGround: false,
-      hasJumped: false
-    };
 
-    const platforms = [];
-    let lastPlatformX = 0;
-    let lastPlatformY = 330;
+  const bgMusic = new Audio("assets/sounds/background-music.mp3");
+  bgMusic.loop = true;
+  bgMusic.volume = 0.3;
 
-    const clouds = [];
+  const jumpSound = new Audio("assets/sounds/jump.mp3");
+  const gameOverSound = new Audio("assets/sounds/gameover2.mp3");
 
-    function generateClouds(count = 10) {
-      clouds.length = 0;
-      for (let i = 0; i < count; i++) {
-        clouds.push({
-          x: Math.random() * canvas.width * 2,
-          y: Math.random() * 180,
-          scale: 0.4 + Math.random() * 1.2,
-          speed: 0.02 + Math.random() * 0.06,
-          type: Math.floor(Math.random() * 3),
-          opacity: 0.6 + Math.random() * 0.4
-        });
-      }
-    }
+  const bunny = {
+    x: 100, y: 0, width: 64, height: 64,
+    velocityX: 0, velocityY: 0,
+    speed: 4,
+    jumpPower: -12,
+    gravity: 0.6,
+    onGround: false,
+    hasJumped: false
+  };
 
-    function drawCloudShape(x, y, scale = 1, type = 0, opacity = 0.8) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(scale, scale);
-      ctx.fillStyle = `rgba(255,255,255,${opacity})`;
+  const platforms = [];
+  let lastPlatformX = 0;
+  let lastPlatformY = 330;
+
+  const clouds = [];
+
+  let musicOn = true;
+  let effectsOn = true;
+
+  const iconSize = 40;
+  const padding = 12;
+
+  const musicIconBox = {
+    x: canvas.width - padding - iconSize * 2 - 12, 
+    y: padding,
+    width: iconSize,
+    height: iconSize
+  };
+
+  const effectsIconBox = {
+    x: canvas.width - padding - iconSize,
+    y: padding,
+    width: iconSize,
+    height: iconSize
+  };
+
+  function drawMusicIcon(ctx, x, y, size, enabled) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size / 40, size / 40);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = enabled ? "#ff3399" : "#ccc";
+    ctx.fillStyle = enabled ? "#ff3399" : "#ccc";
+
+    // Note stem
+    ctx.beginPath();
+    ctx.moveTo(10, 35);
+    ctx.lineTo(10, 10);
+    ctx.stroke();
+
+    // Note flag
+    ctx.beginPath();
+    ctx.moveTo(10, 10);
+    ctx.bezierCurveTo(10, 0, 30, 0, 30, 10);
+    ctx.bezierCurveTo(30, 18, 15, 18, 10, 22);
+    ctx.fill();
+ 
+    // Note base (circle)
+    ctx.beginPath();
+    ctx.arc(10, 35, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+ 
+  function drawSpeakerIcon(ctx, x, y, size, enabled) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size / 40, size / 40);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = enabled ? "#ff3399" : "#ccc";
+    ctx.fillStyle = enabled ? "#ff3399" : "#ccc";
+
+    
+    ctx.beginPath();
+    ctx.moveTo(8, 15);
+    ctx.lineTo(18, 15);
+    ctx.lineTo(26, 7);
+    ctx.lineTo(26, 33);
+    ctx.lineTo(18, 25);
+    ctx.lineTo(8, 25);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    
+    if (enabled) {
       ctx.beginPath();
+      ctx.arc(30, 20, 6, -Math.PI / 4, Math.PI / 4);
+      ctx.stroke();
 
-      if (type === 0) {
-        ctx.arc(0, 0, 30, 0, Math.PI * 2);
-        ctx.arc(30, -10, 40, 0, Math.PI * 2);
-        ctx.arc(70, 0, 30, 0, Math.PI * 2);
-      } else if (type === 1) {
-        ctx.arc(0, 10, 25, 0, Math.PI * 2);
-        ctx.arc(25, 0, 35, 0, Math.PI * 2);
-        ctx.arc(60, 10, 25, 0, Math.PI * 2);
-      } else {
-        ctx.arc(0, 0, 20, 0, Math.PI * 2);
-        ctx.arc(20, -5, 30, 0, Math.PI * 2);
-        ctx.arc(50, 0, 20, 0, Math.PI * 2);
+      ctx.beginPath();
+      ctx.arc(34, 20, 10, -Math.PI / 4, Math.PI / 4);
+      ctx.stroke();
+    } else {
+      // muted
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(12, 12);
+      ctx.lineTo(28, 28);
+      ctx.moveTo(28, 12);
+      ctx.lineTo(12, 28);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function generateClouds(count = 10) {
+    clouds.length = 0;
+    for (let i = 0; i < count; i++) {
+      clouds.push({
+        x: Math.random() * canvas.width * 2,
+        y: Math.random() * 180,
+        scale: 0.4 + Math.random() * 1.2,
+        speed: 0.02 + Math.random() * 0.06,
+        type: Math.floor(Math.random() * 3),
+        opacity: 0.6 + Math.random() * 0.4
+      });
+    }
+  }
+
+  function drawCloudShape(x, y, scale = 1, type = 0, opacity = 0.8) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = `rgba(255,255,255,${opacity})`;
+    ctx.beginPath();
+
+    if (type === 0) {
+      ctx.arc(0, 0, 30, 0, Math.PI * 2);
+      ctx.arc(30, -10, 40, 0, Math.PI * 2);
+      ctx.arc(70, 0, 30, 0, Math.PI * 2);
+    } else if (type === 1) {
+      ctx.arc(0, 10, 25, 0, Math.PI * 2);
+      ctx.arc(25, 0, 35, 0, Math.PI * 2);
+      ctx.arc(60, 10, 25, 0, Math.PI * 2);
+    } else {
+      ctx.arc(0, 0, 20, 0, Math.PI * 2);
+      ctx.arc(20, -5, 30, 0, Math.PI * 2);
+      ctx.arc(50, 0, 20, 0, Math.PI * 2);
+    }
+
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function updateClouds() {
+    clouds.forEach(c => {
+      const baseSpeed = 0.01 + (score / 1000);
+      c.x -= c.speed * baseSpeed;
+
+      if (c.x + 100 * c.scale < cameraX * 0.3 - 300) {
+        c.x = cameraX * 0.3 + canvas.width + Math.random() * 600;
+        c.y = Math.random() * 180;
+        c.scale = 0.4 + Math.random() * 1.2;
+        c.type = Math.floor(Math.random() * 3);
+        c.opacity = 0.6 + Math.random() * 0.4;
       }
+    });
+  }
 
-      ctx.fill();
-      ctx.restore();
+  function drawClouds() {
+    clouds.forEach(c => {
+      drawCloudShape(c.x - cameraX * 0.3, c.y, c.scale, c.type, c.opacity);
+    });
+  }
+
+  function generateInitialPlatforms(count = 6) {
+    platforms.length = 0;
+    lastPlatformX = 0;
+    lastPlatformY = 330;
+
+    for (let i = 0; i < count; i++) {
+      const width = 120 + Math.random() * 60;
+      if (i > 0) {
+        lastPlatformX += 160 + Math.random() * 40;
+        lastPlatformY += (Math.random() - 0.5) * 40;
+        lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
+      }
+      platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
+    }
+  }
+
+  function drawPlatforms() {
+    ctx.fillStyle = "#add8e6";
+    platforms.forEach(p => {
+      ctx.fillRect(p.x - cameraX, p.y, p.width, p.height);
+    });
+  }
+
+  function drawBunny() {
+    ctx.drawImage(bunnyImage, bunny.x - cameraX, bunny.y, bunny.width, bunny.height);
+  }
+
+  function checkCollision(prevY) {
+    bunny.onGround = false;
+
+    platforms.forEach(p => {
+      const bunnyBottomNow = bunny.y + bunny.height;
+      const bunnyBottomPrev = prevY + bunny.height;
+
+      const horizontalOverlap = bunny.x < p.x + p.width && bunny.x + bunny.width > p.x;
+      const verticalPassThrough = bunnyBottomPrev <= p.y && bunnyBottomNow >= p.y;
+
+      if (horizontalOverlap && verticalPassThrough && bunny.velocityY >= 0) {
+        if (lastPlatformLanded !== p) {
+          if (bunny.hasJumped) {
+            score += 1 + combo;
+            combo += 1;
+            bunny.hasJumped = false;
+          } else {
+            combo = 0;
+          }
+          lastPlatformLanded = p;
+        }
+
+        bunny.velocityY = 0;
+        bunny.y = p.y - bunny.height;
+        bunny.onGround = true;
+      }
+    });
+  }
+
+  function generateNewPlatform() {
+    const width = 120 + Math.random() * 60;
+    lastPlatformX += 160 + Math.random() * 40;
+    lastPlatformY += (Math.random() - 0.5) * 40;
+        lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
+    platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
+  }
+
+  function updateBunny() {
+    if (gameOver) return;
+
+   
+    if (keys["ArrowRight"] || keys["KeyD"]) {
+      bunny.velocityX = bunny.speed;
+    } else if (keys["ArrowLeft"] || keys["KeyA"]) {
+      bunny.velocityX = -bunny.speed;
+    } else {
+      bunny.velocityX = 0;
     }
 
-
-
-function updateClouds() {
-  clouds.forEach(c => {
-    const baseSpeed = 0.01 + (score / 1000);
-    c.x -= c.speed * baseSpeed;
-
-    if (c.x + 100 * c.scale < cameraX * 0.3 - 300) {
-      c.x = cameraX * 0.3 + canvas.width + Math.random() * 600;
-      c.y = Math.random() * 180;
-      c.scale = 0.4 + Math.random() * 1.2;
-      c.type = Math.floor(Math.random() * 3);
-      c.opacity = 0.6 + Math.random() * 0.4;
-    }
-  });
+    
+   if ((keys["ArrowUp"] || keys["KeyW"] || keys["Space"]) && bunny.onGround) {
+  bunny.velocityY = bunny.jumpPower;
+  bunny.onGround = false;
+  bunny.hasJumped = true;
+  if (effectsOn) {
+    jumpSound.currentTime = 0;
+    jumpSound.play();
+  }
 }
 
 
+    
+    bunny.velocityY += bunny.gravity;
 
-    function drawClouds() {
-      clouds.forEach(c => {
-        drawCloudShape(c.x - cameraX * 0.3, c.y, c.scale, c.type, c.opacity);
-      });
+    
+    const prevY = bunny.y;
+    bunny.x += bunny.velocityX;
+    bunny.y += bunny.velocityY;
+
+   
+    if (bunny.x < 0) bunny.x = 0;
+    if (bunny.x + bunny.width > cameraX + canvas.width) bunny.x = cameraX + canvas.width - bunny.width;
+
+
+    checkCollision(prevY);
+
+
+    if (bunny.y > canvas.height + 100) {
+      endGame();
     }
 
-    function generateInitialPlatforms(count = 6) {
-      platforms.length = 0;
-      lastPlatformX = 0;
-      lastPlatformY = 330;
 
-      for (let i = 0; i < count; i++) {
-        const width = 120 + Math.random() * 60;
-        if (i > 0) {
-          lastPlatformX += 160 + Math.random() * 40;
-          lastPlatformY += (Math.random() - 0.5) * 40;
-          lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
-        }
-        platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
-      }
+    if (bunny.x - cameraX > canvas.width * 0.6) {
+      cameraX = bunny.x - canvas.width * 0.6;
     }
 
-    function drawPlatforms() {
-      ctx.fillStyle = "#add8e6";
-      platforms.forEach(p => {
-        ctx.fillRect(p.x - cameraX, p.y, p.width, p.height);
-      });
+
+    while (lastPlatformX < cameraX + canvas.width + 200) {
+      generateNewPlatform();
     }
+  }
 
-    function drawBunny() {
-      ctx.drawImage(bunnyImage, bunny.x - cameraX, bunny.y, bunny.width, bunny.height);
-    }
+  function drawHUD() {
+    ctx.fillStyle = "#990033";
+    ctx.font = "20px monospace";
+    ctx.textAlign = "left";
+    ctx.fillText(`Score: ${score}`, 10, 25);
+    ctx.fillText(`High Score: ${highScore}`, 10, 50);
+    ctx.fillText(`Combo: ${combo}`, 10, 75);
 
-    function checkCollision(prevY) {
-      bunny.onGround = false;
 
-      platforms.forEach(p => {
-        const bunnyBottomNow = bunny.y + bunny.height;
-        const bunnyBottomPrev = prevY + bunny.height;
+    drawMusicIcon(ctx, musicIconBox.x, musicIconBox.y, iconSize, musicOn);
 
-        const horizontalOverlap = bunny.x < p.x + p.width && bunny.x + bunny.width > p.x;
-        const verticalPassThrough = bunnyBottomPrev <= p.y && bunnyBottomNow >= p.y;
+    drawSpeakerIcon(ctx, effectsIconBox.x, effectsIconBox.y, iconSize, effectsOn);
+  }
 
-        if (horizontalOverlap && verticalPassThrough && bunny.velocityY >= 0) {
-          if (lastPlatformLanded !== p) {
-            if (bunny.hasJumped) {
-              score += 1 + combo;
-              combo += 1;
-              bunny.hasJumped = false;
-            } else {
-              combo = 0;
-            }
-            lastPlatformLanded = p;
-          }
+  function clearScreen() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
 
-          bunny.velocityY = 0;
-          bunny.y = p.y - bunny.height;
-          bunny.onGround = true;
-        }
-      });
-    }
+  function gameLoop() {
+    clearScreen();
 
-    function generateNewPlatform() {
-      const width = 120 + Math.random() * 60;
-      lastPlatformX += 160 + Math.random() * 40;
-      lastPlatformY += (Math.random() - 0.5) * 40;
-      lastPlatformY = Math.min(Math.max(lastPlatformY, 260), 360);
-      platforms.push({ x: lastPlatformX, y: lastPlatformY, width, height: 10 });
-    }
+    updateClouds();
+    drawClouds();
 
-    function update() {
-      if (gameOver) return;
+    updateBunny();
 
-      const prevY = bunny.y;
+    drawPlatforms();
+    drawBunny();
 
-      if (keys["ArrowRight"]) {
-        bunny.velocityX = bunny.speed;
-      } else if (keys["ArrowLeft"]) {
-        bunny.velocityX = -bunny.speed;
-      } else {
-        bunny.velocityX *= 0.8;
-        if (Math.abs(bunny.velocityX) < 0.1) bunny.velocityX = 0;
-      }
+    drawHUD();
 
-      bunny.x += bunny.velocityX;
-      bunny.velocityY += bunny.gravity;
-      bunny.y += bunny.velocityY;
-
-      if (keys["Space"] && bunny.onGround) {
-        bunny.velocityY = bunny.jumpPower;
-        bunny.onGround = false;
-        bunny.hasJumped = true;
-      }
-
-      checkCollision(prevY);
-
-      const cameraFollowX = canvas.width * 0.4;
-      if (bunny.x - cameraX > cameraFollowX) {
-        cameraX = bunny.x - cameraFollowX;
-      }
-
-      for (let i = platforms.length - 1; i >= 0; i--) {
-        if (platforms[i].x + platforms[i].width < cameraX - 100) {
-          platforms.splice(i, 1);
-          generateNewPlatform();
-        }
-      }
-
-      updateClouds();
-
-      if (bunny.y > canvas.height) {
-        showGameOver();
-      }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawClouds();
-      drawPlatforms();
-      drawBunny();
-
-      ctx.fillStyle = "#333";
-      ctx.font = "16px monospace";
-      ctx.fillText("Score: " + score, 10, 20);
-      ctx.fillText("High Score: " + highScore, 10, 40);
-      ctx.fillText("Combo: " + combo, 10, 60);
-    }
-
-    function gameLoop() {
-      update();
-      draw();
+    if (!gameOver) {
       requestAnimationFrame(gameLoop);
     }
+  }
 
-    function showGameOver() {
+  function endGame() {
+    if (!gameOver) {
       gameOver = true;
       if (score > highScore) {
         highScore = score;
         localStorage.setItem("bunnyHighScore", highScore);
       }
+      if (effectsOn) gameOverSound.play();
       gameOverOverlay.style.visibility = "visible";
+      bgMusic.pause();
     }
+  }
 
-    function resetGame() {
-      gameOver = false;
-      score = 0;
-      combo = 0;
-      lastPlatformLanded = null;
-      cameraX = 0;
-
-      generateInitialPlatforms();
-      generateClouds();
-
-      const firstPlatform = platforms[0];
-      bunny.x = firstPlatform.x + 10;
-      bunny.y = firstPlatform.y - bunny.height;
-      bunny.velocityX = 0;
-      bunny.velocityY = 0;
-      bunny.onGround = true;
-      bunny.hasJumped = false;
-
-      gameOverOverlay.style.visibility = "hidden";
-    }
-
-    restartButton.addEventListener("click", resetGame);
-
+  restartButton.addEventListener("click", () => {
+    gameOverOverlay.style.visibility = "hidden";
     resetGame();
+  });
+
+  function resetGame() {
+    gameOver = false;
+    score = 0;
+    combo = 0;
+    lastPlatformLanded = null;
+    bunny.x = 100;
+    bunny.y = 0;
+    bunny.velocityX = 0;
+    bunny.velocityY = 0;
+    cameraX = 0;
+    generateInitialPlatforms();
+    generateClouds();
+    bgMusic.currentTime = 0;
+    if (musicOn) bgMusic.play();
     gameLoop();
-  </script>
+  }
+
+
+  canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    if (
+      clickX >= musicIconBox.x && clickX <= musicIconBox.x + musicIconBox.width &&
+      clickY >= musicIconBox.y && clickY <= musicIconBox.y + musicIconBox.height
+    ) {
+      musicOn = !musicOn;
+      if (musicOn) bgMusic.play();
+      else bgMusic.pause();
+    }
+
+ 
+    if (
+      clickX >= effectsIconBox.x && clickX <= effectsIconBox.x + effectsIconBox.width &&
+      clickY >= effectsIconBox.y && clickY <= effectsIconBox.y + effectsIconBox.height
+    ) {
+      effectsOn = !effectsOn;
+    }
+  });
+
+
+  bunnyImage.onload = () => {
+    generateInitialPlatforms();
+    generateClouds();
+    if (musicOn) bgMusic.play();
+    gameLoop();
+  };
+</script>
+
 </body>
 </html>
