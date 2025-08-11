@@ -76,6 +76,9 @@
 
   const bunnyImage = new Image();
   bunnyImage.src = "assets/bunny1.png";
+  const platformImage = new Image();
+platformImage.src = "assets/platform.png"; 
+
   const cactusImage = new Image();
   cactusImage.src = "assets/cactus.png";
 
@@ -112,7 +115,7 @@ owSound.volume = 1;
   const cactusHeight = 50;
 
   let lastPlatformX = 0;
-  let lastPlatformY = 330;
+  let lastPlatformY = 380;
 
   let maxLives = 5;
   let currentLives = maxLives;
@@ -299,12 +302,22 @@ owSound.volume = 1;
     }
   }
 
-  function drawPlatforms() {
-    ctx.fillStyle = "#add8e6";
-    platforms.forEach(p => {
-      ctx.fillRect(p.x - cameraX, p.y, p.width, p.height);
-    });
-  }
+function drawPlatforms() {
+  const fixedHeight = 40;  // dikkere platforms
+  const yOffset = 30;       // platforms iets lager
+
+  platforms.forEach(p => {
+    if (platformImage.complete) {
+      ctx.drawImage(platformImage, p.x - cameraX, p.y - fixedHeight + yOffset, p.width, fixedHeight);
+    } else {
+      ctx.fillStyle = "#add8e6";
+      ctx.fillRect(p.x - cameraX, p.y - fixedHeight + yOffset, p.width, fixedHeight);
+    }
+  });
+}
+
+
+
 
 function drawCacti() {
   cacti.forEach(c => {
