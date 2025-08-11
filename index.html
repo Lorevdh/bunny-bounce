@@ -76,6 +76,9 @@
 
   const bunnyImage = new Image();
   bunnyImage.src = "assets/bunny1.png";
+  const cactusImage = new Image();
+  cactusImage.src = "assets/cactus.png";
+
   const carrotImage = new Image();
   carrotImage.src = "assets/carrot.png";
 
@@ -105,8 +108,8 @@ owSound.volume = 1;
 
   const platforms = [];
   const cacti = [];
-  const cactusWidth = 20;
-  const cactusHeight = 40;
+  const cactusWidth = 50;
+  const cactusHeight = 50;
 
   let lastPlatformX = 0;
   let lastPlatformY = 330;
@@ -142,18 +145,6 @@ owSound.volume = 1;
     height: iconSize
   };
 
-  function drawRoundedRect(ctx, x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height);
-    ctx.lineTo(x, y + height);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-    ctx.fill();
-  }
 
   function drawMusicIcon(ctx, x, y, size, enabled) {
     ctx.save();
@@ -315,29 +306,13 @@ owSound.volume = 1;
     });
   }
 
-  function drawCacti() {
-    cacti.forEach(c => {
-      const drawX = c.x - cameraX;
-      const drawY = c.y;
-
-      ctx.fillStyle = "#228B22";
-      drawRoundedRect(ctx, drawX, drawY, cactusWidth, cactusHeight, 8);
-
-      ctx.beginPath();
-      ctx.moveTo(drawX + 5, drawY + 10);
-      ctx.lineTo(drawX - 8, drawY + 5);
-      ctx.lineTo(drawX - 6, drawY + 15);
-      ctx.lineTo(drawX + 5, drawY + 20);
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(drawX + 15, drawY + 15);
-      ctx.lineTo(drawX + 28, drawY + 10);
-      ctx.lineTo(drawX + 26, drawY + 20);
-      ctx.lineTo(drawX + 15, drawY + 25);
-      ctx.fill();
-    });
-  }
+function drawCacti() {
+  cacti.forEach(c => {
+    const drawX = c.x - cameraX;
+    const drawY = c.y;
+    ctx.drawImage(cactusImage, drawX, drawY, cactusWidth, cactusHeight);
+  });
+}
 
   function drawBunny() {
     ctx.drawImage(bunnyImage, bunny.x - cameraX, bunny.y, bunny.width, bunny.height);
@@ -421,12 +396,14 @@ owSound.volume = 1;
 
     checkCollision(prevY);
 
-   cacti.forEach(c => {
+const cactusHitboxPadding = 10; // bijvoorbeeld 10 pixels smaller aan elke kant
+
+cacti.forEach(c => {
   if (
-    bunny.x + bunny.width > c.x &&
-    bunny.x < c.x + cactusWidth &&
-    bunny.y + bunny.height > c.y &&
-    bunny.y < c.y + cactusHeight
+    bunny.x + bunny.width > c.x + cactusHitboxPadding &&
+    bunny.x < c.x + cactusWidth - cactusHitboxPadding &&
+    bunny.y + bunny.height > c.y + cactusHitboxPadding &&
+    bunny.y < c.y + cactusHeight - cactusHitboxPadding
   ) {
     if (effectsOn) {
       owSound.currentTime = 0;
