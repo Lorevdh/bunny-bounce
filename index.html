@@ -76,6 +76,12 @@
 
   const bunnyImage = new Image();
   bunnyImage.src = "assets/bunny1.png";
+  const carrotImage = new Image();
+  carrotImage.src = "assets/carrot.png";
+
+  const carrots = [];
+  const carrotSize = 70;
+
 
   const bgMusic = new Audio("assets/sounds/background-music.mp3");
   bgMusic.loop = true;
@@ -294,6 +300,11 @@ owSound.volume = 1;
         const cactusX = lastPlatformX + 20 + Math.random() * (width - 40);
         cacti.push({ x: cactusX, y: lastPlatformY - cactusHeight });
       }
+      if (Math.random() < 0.2) {
+  const carrotX = lastPlatformX + 20 + Math.random() * (width - 40);
+  carrots.push({ x: carrotX, y: lastPlatformY - carrotSize });
+}
+
     }
   }
 
@@ -369,6 +380,11 @@ owSound.volume = 1;
       const cactusX = lastPlatformX + 20 + Math.random() * (width - 40);
       cacti.push({ x: cactusX, y: lastPlatformY - cactusHeight });
     }
+    if (Math.random() < 0.1) {
+  const carrotX = lastPlatformX + 20 + Math.random() * (width - 40);
+  carrots.push({ x: carrotX, y: lastPlatformY - carrotSize });
+}
+
   }
 
   function updateBunny() {
@@ -424,6 +440,21 @@ owSound.volume = 1;
     c.x = -9999;
   }
 });
+for (let i = carrots.length - 1; i >= 0; i--) {
+  const c = carrots[i];
+  if (
+    bunny.x + bunny.width > c.x &&
+    bunny.x < c.x + carrotSize &&
+    bunny.y + bunny.height > c.y &&
+    bunny.y < c.y + carrotSize
+  ) {
+    if (currentLives < maxLives) {
+      currentLives++;
+    }
+    carrots.splice(i, 1);
+  }
+}
+
 
 
     if (bunny.y > canvas.height + 100) {
@@ -453,6 +484,12 @@ function drawHearts() {
     ctx.drawImage(image, x, y, heartSize, heartSize);
   }
 }
+function drawCarrots() {
+  carrots.forEach(c => {
+    ctx.drawImage(carrotImage, c.x - cameraX, c.y, carrotSize, carrotSize);
+  });
+}
+
 
 
 
@@ -479,6 +516,7 @@ function drawHearts() {
     updateBunny();
     drawPlatforms();
     drawCacti();
+    drawCarrots();
     drawBunny();
     drawHUD();
 
@@ -517,6 +555,8 @@ function drawHearts() {
     cameraX = 0;
     cacti.length = 0;
     currentLives = maxLives;
+    carrots.length = 0;
+
 
     generateInitialPlatforms();
     generateClouds();
