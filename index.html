@@ -83,6 +83,9 @@
 
   const jumpSound = new Audio("assets/sounds/jump.mp3");
   const gameOverSound = new Audio("assets/sounds/gameover2.mp3");
+  const owSound = new Audio("assets/sounds/ow.mp3");
+owSound.volume = 1;
+
 
   const bunny = {
     x: 100, y: 0, width: 64, height: 64,
@@ -402,20 +405,26 @@
 
     checkCollision(prevY);
 
-    cacti.forEach(c => {
-      if (
-        bunny.x + bunny.width > c.x &&
-        bunny.x < c.x + cactusWidth &&
-        bunny.y + bunny.height > c.y &&
-        bunny.y < c.y + cactusHeight
-      ) {
-        currentLives--;
-        if (currentLives <= 0) {
-          endGame();
-        }
-        c.x = -9999;
-      }
-    });
+   cacti.forEach(c => {
+  if (
+    bunny.x + bunny.width > c.x &&
+    bunny.x < c.x + cactusWidth &&
+    bunny.y + bunny.height > c.y &&
+    bunny.y < c.y + cactusHeight
+  ) {
+    if (effectsOn) {
+      owSound.currentTime = 0;
+      owSound.play();
+    }
+
+    currentLives--;
+    if (currentLives <= 0) {
+      endGame();
+    }
+    c.x = -9999;
+  }
+});
+
 
     if (bunny.y > canvas.height + 100) {
       endGame();
